@@ -1,17 +1,21 @@
 package com.example.chatapp.ui
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
@@ -22,14 +26,17 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.chatapp.MainActivity
 import com.example.chatapp.R
+import com.example.chatapp.adaptors.EmojiAdapter
 import com.example.chatapp.adaptors.MessagesAdaptor
 import com.example.chatapp.model.ChatMessage
 import com.example.chatapp.model.User
 import com.example.chatapp.utils.AvatarUtils
+import com.example.chatapp.utils.EmojiData
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentChange
@@ -47,6 +54,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var messageRef: CollectionReference
     private lateinit var sendButton: ImageButton
     private lateinit var attachImageButton: ImageButton
+    private lateinit var emojiToggleButton: ImageButton
     private lateinit var editTextMessage: EditText
     private lateinit var messagesAdaptor: MessagesAdaptor
     private lateinit var messageRecyclerView: RecyclerView
@@ -58,6 +66,12 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private val storageRequestCode = 23423
     private var messageListener: ListenerRegistration? = null
+
+    // Emoji Section Views
+    private lateinit var emojiPickerContainer: View
+    private lateinit var emojiRecyclerView: RecyclerView
+    private lateinit var emojiAdapter: EmojiAdapter
+    private lateinit var emojiBackspaceButton: ImageButton
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,17 +96,20 @@ class ChatActivity : AppCompatActivity() {
 
         sendButton = findViewById(R.id.send_message_button)
         attachImageButton = findViewById(R.id.attach_image_button)
+        emojiToggleButton = findViewById(R.id.emoji_toggle_button)
         editTextMessage = findViewById(R.id.input_message)
         messageRecyclerView = findViewById(R.id.message_recycler_view)
         storageReference = FirebaseStorage.getInstance().reference
         progressBar = findViewById(R.id.progressbarChatBot)
 
         initRecyclerView()
+        initEmojiSection()
         getCurrentUser()
 
         sendButton.setOnClickListener { insertMessage() }
 
         attachImageButton.setOnClickListener {
+            hideEmojiPicker()
             val permission = getPermissionToRequest()
             if (ActivityCompat.checkSelfPermission(
                     this@ChatActivity,
@@ -111,6 +128,87 @@ class ChatActivity : AppCompatActivity() {
                 uploadImage()
             }
         }
+    }
+
+    private fun initEmojiSection() {
+        emojiPickerContainer = findViewById(R.id.emoji_picker_container)
+        emojiRecyclerView = findViewById(R.id.emoji_recycler_view)
+        emojiBackspaceButton = findViewById(R.id.emoji_backspace_button)
+
+        emojiAdapter = EmojiAdapter(EmojiData.SMILEYS) { emoji ->
+            insertEmojiIntoInput(emoji)
+        }
+
+        emojiRecyclerView.layoutManager = GridLayoutManager(this, 7)
+        emojiRecyclerView.adapter = emojiAdapter
+
+        emojiToggleButton.setOnClickListener {
+            toggleEmojiPicker()
+        }
+
+        editTextMessage.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                hideEmojiPicker()
+            }
+        }
+
+        editTextMessage.setOnClickListener {
+            hideEmojiPicker()
+        }
+
+        emojiBackspaceButton.setOnClickListener {
+            editTextMessage.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+        }
+
+        // Category Tabs
+        findViewById<TextView>(R.id.tab_smileys).setOnClickListener {
+            emojiAdapter.updateEmojis(EmojiData.SMILEYS)
+        }
+        findViewById<TextView>(R.id.tab_hearts).setOnClickListener {
+            emojiAdapter.updateEmojis(EmojiData.REACTIONS)
+        }
+        findViewById<TextView>(R.id.tab_hands).setOnClickListener {
+            emojiAdapter.updateEmojis(EmojiData.GESTURES)
+        }
+        findViewById<TextView>(R.id.tab_fire).setOnClickListener {
+            emojiAdapter.updateEmojis(EmojiData.POPULAR)
+        }
+    }
+
+    private fun toggleEmojiPicker() {
+        if (emojiPickerContainer.visibility == View.VISIBLE) {
+            hideEmojiPicker()
+            showKeyboard()
+        } else {
+            hideKeyboard()
+            emojiPickerContainer.visibility = View.VISIBLE
+        }
+    }
+
+    private fun hideEmojiPicker() {
+        if (emojiPickerContainer.visibility == View.VISIBLE) {
+            emojiPickerContainer.visibility = View.GONE
+        }
+    }
+
+    private fun hideKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(editTextMessage.windowToken, 0)
+    }
+
+    private fun showKeyboard() {
+        editTextMessage.requestFocus()
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.showSoftInput(editTextMessage, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun insertEmojiIntoInput(emoji: String) {
+        val start = editTextMessage.selectionStart.coerceAtLeast(0)
+        val end = editTextMessage.selectionEnd.coerceAtLeast(0)
+        val minPos = Math.min(start, end)
+        val maxPos = Math.max(start, end)
+        editTextMessage.text?.replace(minPos, maxPos, emoji)
+        editTextMessage.setSelection(minPos + emoji.length)
     }
 
     private fun getPermissionToRequest(): String {
@@ -174,12 +272,10 @@ class ChatActivity : AppCompatActivity() {
         val authUser = FirebaseAuth.getInstance().currentUser ?: return
         val currentUid = authUser.uid
 
-        // Set default user fallback immediately to avoid uninitialized crash
         val fallbackName = authUser.displayName ?: authUser.email?.substringBefore("@") ?: "User"
         currentUser = User(name = fallbackName, profileImage = "", id = currentUid)
         updateToolbarAvatar(currentUser)
 
-        // Query Firestore for full profile
         usersRef.document(currentUid).get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
                 snapshot.toObject(User::class.java)?.let { u ->
@@ -187,7 +283,6 @@ class ChatActivity : AppCompatActivity() {
                     updateToolbarAvatar(currentUser)
                 }
             } else {
-                // Try fallback query by field
                 usersRef.whereEqualTo("id", currentUid).get().addOnSuccessListener { querySnap ->
                     for (doc in querySnap) {
                         val u = doc.toObject(User::class.java)

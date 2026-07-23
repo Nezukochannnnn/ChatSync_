@@ -106,53 +106,151 @@
         android:layout_gravity="center"
         android:visibility="gone" />
 
-    <!-- Bottom Input Bar -->
+    <!-- Bottom Input & Emoji Layout Group -->
     <androidx.appcompat.widget.LinearLayoutCompat
-        android:id="@+id/input_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="@drawable/bg_input_bar"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="10dp">
+        android:orientation="vertical">
 
-        <!-- Image Attach Button -->
-        <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/attach_image_button"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_image"
-            android:contentDescription="@string/attach_image"
-            android:padding="10dp" />
-
-        <!-- Message Input -->
-        <androidx.appcompat.widget.AppCompatEditText
-            android:id="@+id/input_message"
-            android:layout_width="0dp"
+        <!-- Bottom Input Bar -->
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/input_bar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_input"
-            android:hint="@string/type_a_message"
-            android:maxLines="4"
-            android:minHeight="44dp"
-            android:padding="12dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"
-            android:textSize="15sp" />
+            android:background="@drawable/bg_input_bar"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp">
 
-        <!-- Send Button -->
-        <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/send_message_button"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@drawable/bg_send_button"
-            android:contentDescription="@string/send"
-            android:padding="10dp"
-            android:src="@drawable/ic_send" />
+            <!-- Image Attach Button -->
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/attach_image_button"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_image"
+                android:contentDescription="@string/attach_image"
+                android:padding="8dp" />
+
+            <!-- Emoji Toggle Button -->
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/emoji_toggle_button"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_emoji"
+                android:contentDescription="Emoji Section"
+                android:padding="8dp" />
+
+            <!-- Message Input -->
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/input_message"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:hint="@string/type_a_message"
+                android:maxLines="4"
+                android:minHeight="44dp"
+                android:padding="12dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint"
+                android:textSize="15sp" />
+
+            <!-- Send Button -->
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/send_message_button"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_send_button"
+                android:contentDescription="@string/send"
+                android:padding="10dp"
+                android:src="@drawable/ic_send" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <!-- Emoji Picker Panel -->
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/emoji_picker_container"
+            android:layout_width="match_parent"
+            android:layout_height="240dp"
+            android:background="@color/bg_card"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Category Selector Tabs & Action Bar -->
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@color/bg_input"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp">
+
+                <TextView
+                    android:id="@+id/tab_smileys"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="😀"
+                    android:textSize="22sp"
+                    android:background="?attr/selectableItemBackground" />
+
+                <TextView
+                    android:id="@+id/tab_hearts"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="❤️"
+                    android:textSize="22sp"
+                    android:background="?attr/selectableItemBackground" />
+
+                <TextView
+                    android:id="@+id/tab_hands"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="👍"
+                    android:textSize="22sp"
+                    android:background="?attr/selectableItemBackground" />
+
+                <TextView
+                    android:id="@+id/tab_fire"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="🔥"
+                    android:textSize="22sp"
+                    android:background="?attr/selectableItemBackground" />
+
+                <!-- Backspace Delete Button -->
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:id="@+id/emoji_backspace_button"
+                    android:layout_width="44dp"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_input_delete"
+                    android:contentDescription="Delete emoji"
+                    android:padding="10dp" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+            <!-- Emoji Grid RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/emoji_recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="4dp" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
 
     </androidx.appcompat.widget.LinearLayoutCompat>
 
