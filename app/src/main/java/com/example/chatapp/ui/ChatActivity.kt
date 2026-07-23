@@ -269,9 +269,8 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun setupToolbarGroupAvatar() {
-        val toolbarAvatar = findViewById<CircularImageView>(R.id.toolbar_avatar) ?: return
+        val toolbarAvatar = findViewById<android.widget.ImageView>(R.id.toolbar_avatar) ?: return
         val groupDrawable = AvatarUtils.getGroupAvatarDrawable(this, 40)
-        toolbarAvatar.borderColor = android.graphics.Color.parseColor("#6C63FF")
         toolbarAvatar.setImageDrawable(groupDrawable)
     }
 

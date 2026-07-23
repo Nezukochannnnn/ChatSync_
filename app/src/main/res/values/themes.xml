@@ -16,6 +16,11 @@
 
     <style name="Theme.ChatApp" parent="Base.Theme.ChatApp" />
 
+    <!-- Style for perfect circular image views -->
+    <style name="CircleImageView">
+        <item name="cornerSize">50%</item>
+    </style>
+
     <!-- Chat Toolbar Style -->
     <style name="ChatToolbar" parent="Widget.AppCompat.Toolbar">
         <item name="android:background">@color/bg_card</item>

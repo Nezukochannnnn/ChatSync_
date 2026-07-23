@@ -33,13 +33,13 @@
                 android:orientation="horizontal">
 
                 <!-- Chat Avatar -->
-                <com.mikhaellopez.circularimageview.CircularImageView
+                <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/toolbar_avatar"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:src="@drawable/chat_app"
-                    app:civ_border_color="@color/primary"
-                    app:civ_border_width="2dp"
+                    android:src="@drawable/ic_group"
+                    android:scaleType="centerCrop"
+                    app:shapeAppearanceOverlay="@style/CircleImageView"
                     android:contentDescription="@string/content_description_profile" />
 
                 <androidx.appcompat.widget.LinearLayoutCompat

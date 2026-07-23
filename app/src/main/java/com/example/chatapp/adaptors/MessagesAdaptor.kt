@@ -11,8 +11,8 @@ import com.example.chatapp.R
 import com.example.chatapp.model.ChatMessage
 import com.example.chatapp.model.User
 import com.example.chatapp.utils.AvatarUtils
+import com.google.android.material.imageview.ShapeableImageView
 import com.google.firebase.auth.FirebaseAuth
-import com.mikhaellopez.circularimageview.CircularImageView
 import com.squareup.picasso.Picasso
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -54,10 +54,8 @@ class MessagesAdaptor(
         }
     }
 
-    private fun loadUserProfile(user: User, imageView: CircularImageView) {
+    private fun loadUserProfile(user: User, imageView: ImageView) {
         val initialDrawable = AvatarUtils.getAvatarDrawable(context, user, 36)
-        val userColor = AvatarUtils.getColorForUser(user.id.ifEmpty { user.name })
-        imageView.borderColor = userColor
 
         if (user.profileImage.isNotEmpty()) {
             Picasso.get()
@@ -134,23 +132,23 @@ class MessagesAdaptor(
     class MeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textViewMessage: TextView = itemView.findViewById(R.id.text_message_me)
         val textViewTimestamp: TextView = itemView.findViewById(R.id.text_timestamp_me)
-        val meProfileImage: CircularImageView = itemView.findViewById(R.id.image_profile_me)
+        val meProfileImage: ShapeableImageView = itemView.findViewById(R.id.image_profile_me)
     }
 
     class SenderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textViewSender: TextView = itemView.findViewById(R.id.text_message_sender)
         val textViewSenderName: TextView = itemView.findViewById(R.id.text_name_sender)
         val textViewTimestamp: TextView = itemView.findViewById(R.id.text_timestamp_sender)
-        val senderProfileImage: CircularImageView = itemView.findViewById(R.id.image_profile_sender)
+        val senderProfileImage: ShapeableImageView = itemView.findViewById(R.id.image_profile_sender)
     }
 
     class ImageHolderMe(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val meImage: ImageView = itemView.findViewById(R.id.me_image)
-        val meProfileImage: CircularImageView = itemView.findViewById(R.id.image_profile_me)
+        val meProfileImage: ShapeableImageView = itemView.findViewById(R.id.image_profile_me)
     }
 
     class ImageHolderSender(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val senderImage: ImageView = itemView.findViewById(R.id.sender_image)
-        val senderProfileImage: CircularImageView = itemView.findViewById(R.id.image_profile_sender)
+        val senderProfileImage: ShapeableImageView = itemView.findViewById(R.id.image_profile_sender)
     }
 }
