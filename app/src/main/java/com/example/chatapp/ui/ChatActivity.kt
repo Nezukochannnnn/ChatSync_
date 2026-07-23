@@ -268,45 +268,34 @@ class ChatActivity : AppCompatActivity() {
         messageRecyclerView.setHasFixedSize(false)
     }
 
+    private fun setupToolbarGroupAvatar() {
+        val toolbarAvatar = findViewById<CircularImageView>(R.id.toolbar_avatar) ?: return
+        val groupDrawable = AvatarUtils.getGroupAvatarDrawable(this, 40)
+        toolbarAvatar.borderColor = android.graphics.Color.parseColor("#6C63FF")
+        toolbarAvatar.setImageDrawable(groupDrawable)
+    }
+
     private fun getCurrentUser() {
         val authUser = FirebaseAuth.getInstance().currentUser ?: return
         val currentUid = authUser.uid
 
         val fallbackName = authUser.displayName ?: authUser.email?.substringBefore("@") ?: "User"
         currentUser = User(name = fallbackName, profileImage = "", id = currentUid)
-        updateToolbarAvatar(currentUser)
+        setupToolbarGroupAvatar()
 
         usersRef.document(currentUid).get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
                 snapshot.toObject(User::class.java)?.let { u ->
                     currentUser = u
-                    updateToolbarAvatar(currentUser)
                 }
             } else {
                 usersRef.whereEqualTo("id", currentUid).get().addOnSuccessListener { querySnap ->
                     for (doc in querySnap) {
                         val u = doc.toObject(User::class.java)
                         currentUser = u
-                        updateToolbarAvatar(currentUser)
                     }
                 }
             }
-        }
-    }
-
-    private fun updateToolbarAvatar(user: User) {
-        val toolbarAvatar = findViewById<CircularImageView>(R.id.toolbar_avatar) ?: return
-        val initialDrawable = AvatarUtils.getAvatarDrawable(this, user, 40)
-        toolbarAvatar.borderColor = AvatarUtils.getColorForUser(user.id.ifEmpty { user.name })
-
-        if (user.profileImage.isNotEmpty()) {
-            Picasso.get()
-                .load(user.profileImage)
-                .placeholder(initialDrawable)
-                .error(initialDrawable)
-                .into(toolbarAvatar)
-        } else {
-            toolbarAvatar.setImageDrawable(initialDrawable)
         }
     }
 

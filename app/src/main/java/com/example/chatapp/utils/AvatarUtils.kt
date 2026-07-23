@@ -9,6 +9,8 @@ import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.collection.LruCache
+import androidx.core.content.ContextCompat
+import com.example.chatapp.R
 import com.example.chatapp.model.User
 
 object AvatarUtils {
@@ -87,5 +89,37 @@ object AvatarUtils {
         val displayName = user.name.ifEmpty { "User" }
         val id = user.id.ifEmpty { displayName }
         return generateInitialDrawable(context, displayName, id, sizeDp)
+    }
+
+    fun getGroupAvatarDrawable(context: Context, sizeDp: Int = 40): Drawable {
+        val cacheKey = "group-avatar-$sizeDp"
+        avatarCache.get(cacheKey)?.let { return it }
+
+        val density = context.resources.displayMetrics.density
+        val sizePx = (sizeDp * density).toInt().coerceAtLeast(1)
+
+        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        // Solid circular background with primary brand color
+        val paintBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#6C63FF")
+            style = Paint.Style.FILL
+        }
+        canvas.drawCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, paintBg)
+
+        // Draw group vector icon centered inside circle
+        val vectorDrawable = ContextCompat.getDrawable(context, R.drawable.ic_group)
+        if (vectorDrawable != null) {
+            val iconSize = (sizePx * 0.55f).toInt()
+            val left = (sizePx - iconSize) / 2
+            val top = (sizePx - iconSize) / 2
+            vectorDrawable.setBounds(left, top, left + iconSize, top + iconSize)
+            vectorDrawable.draw(canvas)
+        }
+
+        val drawable = BitmapDrawable(context.resources, bitmap)
+        avatarCache.put(cacheKey, drawable)
+        return drawable
     }
 }
