@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">ChatApp</string>
+    <string name="hint_email">Email address</string>
+    <string name="hint_password">Password</string>
+    <string name="hint_confirm_password">Confirm Password</string>
+    <string name="text_sign_in_button">Sign In</string>
+    <string name="text_sign_up_button">Sign Up</string>
+    <string name="text_view_register">Don\'t have an account? Register</string>
+    <string name="text_view_go_to_profile">Pick a Profile Photo (Optional)</string>
+    <string name="hint_username">Username</string>
+    <string name="dialog_button_yes">Yes</string>
+    <string name="dialog_button_no">NO</string>
+    <string name="type_a_message">Message…</string>
+    <string name="send">Send</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="hello_this_is_my_message">Hello, this is my message</string>
+    <string name="_12_00_pm">12:00 PM</string>
+    <string name="welcome_back">Welcome back 👋</string>
+    <string name="sign_in_subtitle">Sign in to continue chatting</string>
+    <string name="create_account">Create Account</string>
+    <string name="create_account_subtitle">Join and start chatting</string>
+    <string name="profile_photo">Set Profile Photo</string>
+    <string name="profile_photo_subtitle">Add a profile photo to personalise your account</string>
+    <string name="already_have_account">Already have an account? Sign In</string>
+    <string name="or">or</string>
+    <string name="global_chat">Global Chat</string>
+    <string name="everyone_online">Everyone is here</string>
+    <string name="attach_image">Attach image</string>
+    <string name="content_description_profile">Profile picture</string>
+</resources>

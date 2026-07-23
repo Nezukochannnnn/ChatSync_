@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Brand Colors - Modern Purple/Blue Gradient Palette -->
+    <color name="primary">#6C63FF</color>
+    <color name="primary_dark">#4A42D6</color>
+    <color name="primary_light">#8B85FF</color>
+    <color name="accent">#FF6584</color>
+
+    <!-- Legacy alias used in code -->
+    <color name="blue_darker">#4A42D6</color>
+
+    <!-- Background Colors -->
+    <color name="bg_dark">#0F0E1A</color>
+    <color name="bg_card">#1C1B2E</color>
+    <color name="bg_input">#252438</color>
+    <color name="bg_surface">#16152A</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B0ADCC</color>
+    <color name="text_hint">#6B6880</color>
+
+    <!-- Chat Bubble Colors -->
+    <color name="bubble_me_start">#6C63FF</color>
+    <color name="bubble_me_end">#9B59B6</color>
+    <color name="bubble_sender">#252438</color>
+    <color name="bubble_sender_text">#E8E6FF</color>
+
+    <!-- Divider / Border -->
+    <color name="divider">#2A2840</color>
+    <color name="grey_darker">#888888</color>
+
+    <!-- Status -->
+    <color name="success">#2ECC71</color>
+    <color name="error">#E74C3C</color>
+    <color name="online_dot">#2ECC71</color>
+</resources>
