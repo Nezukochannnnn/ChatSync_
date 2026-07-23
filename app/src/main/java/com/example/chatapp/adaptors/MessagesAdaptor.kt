@@ -52,6 +52,18 @@ class MessagesAdaptor(
         }
     }
 
+    private fun loadProfileImage(imageUrl: String, imageView: CircularImageView) {
+        if (imageUrl.isNotEmpty()) {
+            Picasso.get()
+                .load(imageUrl)
+                .placeholder(R.drawable.ic_profile)
+                .error(R.drawable.ic_profile)
+                .into(imageView)
+        } else {
+            imageView.setImageResource(R.drawable.ic_profile)
+        }
+    }
+
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = messages[position]
         val timestampStr = message.timestamp?.let { timeFormat.format(it) } ?: ""
@@ -60,21 +72,13 @@ class MessagesAdaptor(
             is MeViewHolder -> {
                 holder.textViewMessage.text = message.message
                 holder.textViewTimestamp.text = timestampStr
+                loadProfileImage(message.sender.profileImage, holder.meProfileImage)
             }
             is SenderViewHolder -> {
                 holder.textViewSender.text = message.message
                 holder.textViewSenderName.text = message.sender.name
                 holder.textViewTimestamp.text = timestampStr
-
-                if (message.sender.profileImage.isNotEmpty()) {
-                    Picasso.get()
-                        .load(message.sender.profileImage)
-                        .placeholder(R.drawable.ic_profile)
-                        .error(R.drawable.ic_profile)
-                        .into(holder.senderProfileImage)
-                } else {
-                    holder.senderProfileImage.setImageResource(R.drawable.ic_profile)
-                }
+                loadProfileImage(message.sender.profileImage, holder.senderProfileImage)
             }
             is ImageHolderMe -> {
                 if (message.image.isNotEmpty()) {
@@ -83,6 +87,7 @@ class MessagesAdaptor(
                         .placeholder(R.drawable.chat_app)
                         .into(holder.meImage)
                 }
+                loadProfileImage(message.sender.profileImage, holder.meProfileImage)
             }
             is ImageHolderSender -> {
                 if (message.image.isNotEmpty()) {
@@ -91,6 +96,7 @@ class MessagesAdaptor(
                         .placeholder(R.drawable.chat_app)
                         .into(holder.senderImage)
                 }
+                loadProfileImage(message.sender.profileImage, holder.senderProfileImage)
             }
         }
     }
@@ -111,6 +117,7 @@ class MessagesAdaptor(
     class MeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textViewMessage: TextView = itemView.findViewById(R.id.text_message_me)
         val textViewTimestamp: TextView = itemView.findViewById(R.id.text_timestamp_me)
+        val meProfileImage: CircularImageView = itemView.findViewById(R.id.image_profile_me)
     }
 
     class SenderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -122,9 +129,11 @@ class MessagesAdaptor(
 
     class ImageHolderMe(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val meImage: ImageView = itemView.findViewById(R.id.me_image)
+        val meProfileImage: CircularImageView = itemView.findViewById(R.id.image_profile_me)
     }
 
     class ImageHolderSender(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val senderImage: ImageView = itemView.findViewById(R.id.sender_image)
+        val senderProfileImage: CircularImageView = itemView.findViewById(R.id.image_profile_sender)
     }
 }
