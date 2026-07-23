@@ -9,6 +9,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.chatapp.R
 import com.example.chatapp.model.ChatMessage
+import com.example.chatapp.model.User
+import com.example.chatapp.utils.AvatarUtils
 import com.google.firebase.auth.FirebaseAuth
 import com.mikhaellopez.circularimageview.CircularImageView
 import com.squareup.picasso.Picasso
@@ -52,15 +54,19 @@ class MessagesAdaptor(
         }
     }
 
-    private fun loadProfileImage(imageUrl: String, imageView: CircularImageView) {
-        if (imageUrl.isNotEmpty()) {
+    private fun loadUserProfile(user: User, imageView: CircularImageView) {
+        val initialDrawable = AvatarUtils.getAvatarDrawable(context, user, 36)
+        val userColor = AvatarUtils.getColorForUser(user.id.ifEmpty { user.name })
+        imageView.borderColor = userColor
+
+        if (user.profileImage.isNotEmpty()) {
             Picasso.get()
-                .load(imageUrl)
-                .placeholder(R.drawable.ic_profile)
-                .error(R.drawable.ic_profile)
+                .load(user.profileImage)
+                .placeholder(initialDrawable)
+                .error(initialDrawable)
                 .into(imageView)
         } else {
-            imageView.setImageResource(R.drawable.ic_profile)
+            imageView.setImageDrawable(initialDrawable)
         }
     }
 
@@ -72,13 +78,16 @@ class MessagesAdaptor(
             is MeViewHolder -> {
                 holder.textViewMessage.text = message.message
                 holder.textViewTimestamp.text = timestampStr
-                loadProfileImage(message.sender.profileImage, holder.meProfileImage)
+                loadUserProfile(message.sender, holder.meProfileImage)
             }
             is SenderViewHolder -> {
                 holder.textViewSender.text = message.message
-                holder.textViewSenderName.text = message.sender.name
+                holder.textViewSenderName.text = message.sender.name.ifEmpty { "User" }
+                holder.textViewSenderName.setTextColor(
+                    AvatarUtils.getColorForUser(message.sender.id.ifEmpty { message.sender.name })
+                )
                 holder.textViewTimestamp.text = timestampStr
-                loadProfileImage(message.sender.profileImage, holder.senderProfileImage)
+                loadUserProfile(message.sender, holder.senderProfileImage)
             }
             is ImageHolderMe -> {
                 if (message.image.isNotEmpty()) {
@@ -87,7 +96,7 @@ class MessagesAdaptor(
                         .placeholder(R.drawable.chat_app)
                         .into(holder.meImage)
                 }
-                loadProfileImage(message.sender.profileImage, holder.meProfileImage)
+                loadUserProfile(message.sender, holder.meProfileImage)
             }
             is ImageHolderSender -> {
                 if (message.image.isNotEmpty()) {
@@ -96,7 +105,7 @@ class MessagesAdaptor(
                         .placeholder(R.drawable.chat_app)
                         .into(holder.senderImage)
                 }
-                loadProfileImage(message.sender.profileImage, holder.senderProfileImage)
+                loadUserProfile(message.sender, holder.senderProfileImage)
             }
         }
     }

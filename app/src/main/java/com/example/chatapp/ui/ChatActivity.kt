@@ -168,6 +168,20 @@ class ChatActivity : AppCompatActivity() {
                 .addOnSuccessListener {
                     for (snapshot in it) {
                         currentUser = snapshot.toObject(User::class.java)
+                        val toolbarAvatar = findViewById<com.mikhaellopez.circularimageview.CircularImageView>(R.id.toolbar_avatar)
+                        if (toolbarAvatar != null) {
+                            val initialDrawable = com.example.chatapp.utils.AvatarUtils.getAvatarDrawable(this, currentUser, 40)
+                            toolbarAvatar.borderColor = com.example.chatapp.utils.AvatarUtils.getColorForUser(currentUser.id.ifEmpty { currentUser.name })
+                            if (currentUser.profileImage.isNotEmpty()) {
+                                com.squareup.picasso.Picasso.get()
+                                    .load(currentUser.profileImage)
+                                    .placeholder(initialDrawable)
+                                    .error(initialDrawable)
+                                    .into(toolbarAvatar)
+                            } else {
+                                toolbarAvatar.setImageDrawable(initialDrawable)
+                            }
+                        }
                     }
                 }
         }
