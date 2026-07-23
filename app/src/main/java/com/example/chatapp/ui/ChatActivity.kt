@@ -29,13 +29,17 @@ import com.example.chatapp.R
 import com.example.chatapp.adaptors.MessagesAdaptor
 import com.example.chatapp.model.ChatMessage
 import com.example.chatapp.model.User
+import com.example.chatapp.utils.AvatarUtils
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
+import com.mikhaellopez.circularimageview.CircularImageView
+import com.squareup.picasso.Picasso
 
 class ChatActivity : AppCompatActivity() {
     private lateinit var db: FirebaseFirestore
@@ -49,11 +53,11 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var messages: MutableList<ChatMessage>
     private lateinit var currentUser: User
     private lateinit var storageReference: StorageReference
-    private lateinit var uri: Uri
+    private var selectedImageUri: Uri? = null
     private lateinit var getResult: ActivityResultLauncher<Intent>
     private lateinit var progressBar: ProgressBar
     private val storageRequestCode = 23423
-
+    private var messageListener: ListenerRegistration? = null
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,12 +105,10 @@ class ChatActivity : AppCompatActivity() {
             }
         }
 
-        getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == RESULT_OK) {
-                it.data?.data?.let { dataUri ->
-                    uri = dataUri
-                    uploadImage()
-                }
+        getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK && result.data?.data != null) {
+                selectedImageUri = result.data?.data
+                uploadImage()
             }
         }
     }
@@ -121,30 +123,38 @@ class ChatActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        attachMessageListener()
+    }
 
-        messages.clear()
-        messageRef.orderBy("timestamp", Query.Direction.ASCENDING)
+    override fun onStop() {
+        super.onStop()
+        messageListener?.remove()
+        messageListener = null
+    }
+
+    private fun attachMessageListener() {
+        messageListener?.remove()
+        messageListener = messageRef.orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener(this) { snapshots, error ->
-                error?.let {
-                    return@addSnapshotListener
+                if (error != null || snapshots == null) return@addSnapshotListener
+
+                var hasNewItems = false
+                for (dc in snapshots.documentChanges) {
+                    if (dc.type == DocumentChange.Type.ADDED) {
+                        try {
+                            val message = dc.document.toObject(ChatMessage::class.java)
+                            messages.add(message)
+                            messagesAdaptor.notifyItemInserted(messages.size - 1)
+                            hasNewItems = true
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 }
 
-                snapshots?.let {
-                    for (dc in it.documentChanges) {
-                        when (dc.type) {
-                            DocumentChange.Type.ADDED -> {
-                                val message = dc.document.toObject(ChatMessage::class.java)
-                                messages.add(message)
-                                messagesAdaptor.notifyItemInserted(messages.size - 1)
-                                messageRecyclerView.smoothScrollToPosition(messages.size - 1)
-                            }
-                            DocumentChange.Type.REMOVED -> {
-                                // Optional: Handle removed messages
-                            }
-                            DocumentChange.Type.MODIFIED -> {
-                                // Optional: Handle modified messages
-                            }
-                        }
+                if (hasNewItems && messages.isNotEmpty()) {
+                    messageRecyclerView.post {
+                        messageRecyclerView.scrollToPosition(messages.size - 1)
                     }
                 }
             }
@@ -161,29 +171,47 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun getCurrentUser() {
-        val currentUid = FirebaseAuth.getInstance().currentUser?.uid
-        if (currentUid != null) {
-            usersRef.whereEqualTo("id", currentUid)
-                .get()
-                .addOnSuccessListener {
-                    for (snapshot in it) {
-                        currentUser = snapshot.toObject(User::class.java)
-                        val toolbarAvatar = findViewById<com.mikhaellopez.circularimageview.CircularImageView>(R.id.toolbar_avatar)
-                        if (toolbarAvatar != null) {
-                            val initialDrawable = com.example.chatapp.utils.AvatarUtils.getAvatarDrawable(this, currentUser, 40)
-                            toolbarAvatar.borderColor = com.example.chatapp.utils.AvatarUtils.getColorForUser(currentUser.id.ifEmpty { currentUser.name })
-                            if (currentUser.profileImage.isNotEmpty()) {
-                                com.squareup.picasso.Picasso.get()
-                                    .load(currentUser.profileImage)
-                                    .placeholder(initialDrawable)
-                                    .error(initialDrawable)
-                                    .into(toolbarAvatar)
-                            } else {
-                                toolbarAvatar.setImageDrawable(initialDrawable)
-                            }
-                        }
+        val authUser = FirebaseAuth.getInstance().currentUser ?: return
+        val currentUid = authUser.uid
+
+        // Set default user fallback immediately to avoid uninitialized crash
+        val fallbackName = authUser.displayName ?: authUser.email?.substringBefore("@") ?: "User"
+        currentUser = User(name = fallbackName, profileImage = "", id = currentUid)
+        updateToolbarAvatar(currentUser)
+
+        // Query Firestore for full profile
+        usersRef.document(currentUid).get().addOnSuccessListener { snapshot ->
+            if (snapshot.exists()) {
+                snapshot.toObject(User::class.java)?.let { u ->
+                    currentUser = u
+                    updateToolbarAvatar(currentUser)
+                }
+            } else {
+                // Try fallback query by field
+                usersRef.whereEqualTo("id", currentUid).get().addOnSuccessListener { querySnap ->
+                    for (doc in querySnap) {
+                        val u = doc.toObject(User::class.java)
+                        currentUser = u
+                        updateToolbarAvatar(currentUser)
                     }
                 }
+            }
+        }
+    }
+
+    private fun updateToolbarAvatar(user: User) {
+        val toolbarAvatar = findViewById<CircularImageView>(R.id.toolbar_avatar) ?: return
+        val initialDrawable = AvatarUtils.getAvatarDrawable(this, user, 40)
+        toolbarAvatar.borderColor = AvatarUtils.getColorForUser(user.id.ifEmpty { user.name })
+
+        if (user.profileImage.isNotEmpty()) {
+            Picasso.get()
+                .load(user.profileImage)
+                .placeholder(initialDrawable)
+                .error(initialDrawable)
+                .into(toolbarAvatar)
+        } else {
+            toolbarAvatar.setImageDrawable(initialDrawable)
         }
     }
 
@@ -200,7 +228,7 @@ class ChatActivity : AppCompatActivity() {
                         }
                     }
             } else {
-                Toast.makeText(this, "Wait for user data to load", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Loading user profile...", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -213,6 +241,8 @@ class ChatActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.item_sign_out -> {
+                messageListener?.remove()
+                messageListener = null
                 FirebaseAuth.getInstance().signOut()
                 Intent(this@ChatActivity, MainActivity::class.java).also {
                     startActivity(it)
@@ -250,7 +280,7 @@ class ChatActivity : AppCompatActivity() {
                     dialog.cancel()
                 }
                 .setTitle("Permission needed")
-                .setMessage("This permission is needed for accessing the internal storage")
+                .setMessage("This permission is needed for accessing internal storage to attach photos.")
                 .show()
         } else {
             ActivityCompat.requestPermissions(
@@ -277,41 +307,41 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun uploadImage() {
-        if (this::uri.isInitialized) {
-            showProgressBar()
+        val localUri = selectedImageUri ?: return
+        showProgressBar()
 
-            val filePath = storageReference.child("chat_images")
-                .child("${System.currentTimeMillis()}.image")
+        val filePath = storageReference.child("chat_images")
+            .child("${System.currentTimeMillis()}.jpg")
 
-            filePath.putFile(uri).addOnSuccessListener { task ->
-                task.storage.downloadUrl.addOnSuccessListener { downloadUri ->
-                    val downloadUrlString = downloadUri.toString()
+        filePath.putFile(localUri).addOnSuccessListener { task ->
+            task.storage.downloadUrl.addOnSuccessListener { downloadUri ->
+                val downloadUrlString = downloadUri.toString()
 
-                    if (::currentUser.isInitialized) {
-                        val message = ChatMessage(currentUser, "", downloadUrlString)
-                        messageRef.document()
-                            .set(message)
-                            .addOnCompleteListener { firestoreTask ->
-                                if (firestoreTask.isSuccessful) {
-                                    Toast.makeText(this, "Image sent!", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(this, "Image wasn't sent!", Toast.LENGTH_SHORT)
-                                        .show()
-                                }
-                                hideProgressBar()
+                if (::currentUser.isInitialized) {
+                    val message = ChatMessage(currentUser, "", downloadUrlString)
+                    messageRef.document()
+                        .set(message)
+                        .addOnCompleteListener { firestoreTask ->
+                            if (firestoreTask.isSuccessful) {
+                                Toast.makeText(this, "Image sent!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this, "Image send failed", Toast.LENGTH_SHORT).show()
                             }
-                    } else {
-                        hideProgressBar()
-                        Toast.makeText(this, "User info not available", Toast.LENGTH_SHORT).show()
-                    }
+                            hideProgressBar()
+                        }
+                } else {
+                    hideProgressBar()
+                    Toast.makeText(this, "User info not available", Toast.LENGTH_SHORT).show()
                 }
-            }.addOnFailureListener {
+            }.addOnFailureListener { e ->
                 hideProgressBar()
-                Toast.makeText(this, "Upload failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Upload failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
+        }.addOnFailureListener { e ->
+            hideProgressBar()
+            Toast.makeText(this, "Upload failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     private fun showProgressBar() {
         progressBar.visibility = View.VISIBLE
@@ -320,5 +350,4 @@ class ChatActivity : AppCompatActivity() {
     private fun hideProgressBar() {
         progressBar.visibility = View.GONE
     }
-
 }

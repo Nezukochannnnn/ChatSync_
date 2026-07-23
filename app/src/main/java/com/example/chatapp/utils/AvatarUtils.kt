@@ -8,9 +8,13 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import androidx.collection.LruCache
 import com.example.chatapp.model.User
 
 object AvatarUtils {
+
+    // Cache generated avatar drawables to avoid main-thread bitmap allocation during scrolling
+    private val avatarCache = LruCache<String, Drawable>(100)
 
     // Curated palette of 16 distinct vibrant colors
     private val COLOR_PALETTE = intArrayOf(
@@ -39,6 +43,9 @@ object AvatarUtils {
     }
 
     fun generateInitialDrawable(context: Context, name: String, identifier: String, sizeDp: Int = 40): Drawable {
+        val cacheKey = "$identifier-$name-$sizeDp"
+        avatarCache.get(cacheKey)?.let { return it }
+
         val density = context.resources.displayMetrics.density
         val sizePx = (sizeDp * density).toInt().coerceAtLeast(1)
 
@@ -57,7 +64,7 @@ object AvatarUtils {
         // Draw uppercase initial letter
         val displayName = name.trim()
         val initial = if (displayName.isNotEmpty()) displayName.first().uppercase() else "?"
-        
+
         val paintText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textSize = sizePx * 0.45f
@@ -71,7 +78,9 @@ object AvatarUtils {
 
         canvas.drawText(initial, sizePx / 2f, yOffset, paintText)
 
-        return BitmapDrawable(context.resources, bitmap)
+        val drawable = BitmapDrawable(context.resources, bitmap)
+        avatarCache.put(cacheKey, drawable)
+        return drawable
     }
 
     fun getAvatarDrawable(context: Context, user: User, sizeDp: Int = 40): Drawable {

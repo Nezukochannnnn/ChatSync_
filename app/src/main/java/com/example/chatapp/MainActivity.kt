@@ -20,7 +20,6 @@ import androidx.databinding.DataBindingUtil
 import com.example.chatapp.databinding.ActivityMainBinding
 import com.example.chatapp.model.User
 import com.example.chatapp.ui.ChatActivity
-import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
@@ -31,17 +30,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mBinding: ActivityMainBinding
     private lateinit var getResult: ActivityResultLauncher<Intent>
     private val STORAGE_REQUEST_CODE = 23423
-    private lateinit var uri: Uri
+    private var selectedImageUri: Uri? = null
     private lateinit var storageRef: StorageReference
     private lateinit var db: FirebaseFirestore
     private lateinit var mUsersRef: CollectionReference
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Auto-login: if user already signed in, skip to ChatActivity
+        // Auto-login: if user already signed in, skip to ChatActivity immediately
         if (FirebaseAuth.getInstance().currentUser != null) {
             sendToActivity()
             return
@@ -52,7 +50,6 @@ class MainActivity : AppCompatActivity() {
         db = FirebaseFirestore.getInstance()
         mUsersRef = db.collection("users_collection")
         storageRef = FirebaseStorage.getInstance().reference
-
 
         ViewCompat.setOnApplyWindowInsetsListener(mBinding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -70,27 +67,24 @@ class MainActivity : AppCompatActivity() {
             createAccount()
         }
 
-        // "Don't have an account? Register" → go to sign up page
+        // Navigation links
         mBinding.textViewRegister.setOnClickListener {
             showFlipperPage(1)
         }
 
-        // "Already have an account? Sign In" → go back to sign in page
         mBinding.textViewSignIn.setOnClickListener {
             showFlipperPage(0)
         }
 
-        // "Pick a Profile Photo (Optional)" → go to profile photo page
         mBinding.textViewGoToProfile.setOnClickListener {
             showFlipperPage(2)
         }
 
-        // "Sign Up" link on profile page → go back to sign up page
         mBinding.textViewSignUp.setOnClickListener {
             showFlipperPage(1)
         }
 
-        // Profile image click → pick image
+        // Profile image click -> pick image
         mBinding.profileImage.setOnClickListener {
             val permission = getPermissionToRequest()
             if (ActivityCompat.checkSelfPermission(
@@ -104,10 +98,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == RESULT_OK) {
-                mBinding.profileImage.setImageURI(it.data?.data)
-                uri = it.data?.data!!
+        getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK && result.data?.data != null) {
+                selectedImageUri = result.data?.data
+                selectedImageUri?.let { uri ->
+                    mBinding.profileImage.setImageURI(uri)
+                }
             }
         }
     }
@@ -118,7 +114,7 @@ class MainActivity : AppCompatActivity() {
             mBinding.flipper.setInAnimation(this, android.R.anim.slide_in_left)
             mBinding.flipper.setOutAnimation(this, android.R.anim.slide_out_right)
             mBinding.flipper.displayedChild = index
-        } else {
+        } else if (index < current) {
             mBinding.flipper.setInAnimation(this, R.anim.slide_in_right)
             mBinding.flipper.setOutAnimation(this, R.anim.slide_out_left)
             mBinding.flipper.displayedChild = index
@@ -133,118 +129,94 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun signIn(
-        email: String = mBinding.signInInputEmail.editText?.text.toString().trim(),
-        password: String = mBinding.signInInputPassword.editText?.text.toString()
-            .trim()
-    ) {
-        showProgressBar1()
+    private fun signIn() {
+        val email = mBinding.signInEditTextEmail.text?.toString()?.trim().orEmpty()
+        val password = mBinding.signInEditTextPassword.text?.toString()?.trim().orEmpty()
 
         if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Please enter your email and password", Toast.LENGTH_LONG)
-                .show()
-            hideProgressBar1()
+            Toast.makeText(this, "Please enter your email and password", Toast.LENGTH_LONG).show()
             return
         }
 
+        showProgressBar1()
+
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
+                hideProgressBar1()
                 if (task.isSuccessful) {
-                    hideProgressBar1()
                     sendToActivity()
                 } else {
                     Toast.makeText(
                         this,
-                        task.exception?.message ?: "Sign in failed",
+                        task.exception?.localizedMessage ?: "Sign in failed",
                         Toast.LENGTH_LONG
                     ).show()
-                    hideProgressBar1()
                 }
             }
     }
 
     private fun createAccount() {
-        showProgressBar2()
-
-        val email = mBinding.signUpInputEmail.text.toString().trim()
-        val password = mBinding.signUpInputPassword.text.toString().trim()
-        val confirmPassword = mBinding.signUpInputConfirmPassword.text.toString().trim()
-        val username = mBinding.signUpInputUsername.text.toString().trim()
-
+        val email = mBinding.signUpInputEmail.text?.toString()?.trim().orEmpty()
+        val password = mBinding.signUpInputPassword.text?.toString()?.trim().orEmpty()
+        val confirmPassword = mBinding.signUpInputConfirmPassword.text?.toString()?.trim().orEmpty()
+        val username = mBinding.signUpInputUsername.text?.toString()?.trim().orEmpty()
 
         if (username.isEmpty()) {
-            Toast.makeText(this, "Please enter a username", Toast.LENGTH_LONG)
-                .show()
-            hideProgressBar2()
+            Toast.makeText(this, "Please enter a username", Toast.LENGTH_LONG).show()
             return
         }
         if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_LONG)
-                .show()
-            hideProgressBar2()
+            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_LONG).show()
             return
         }
         if (password != confirmPassword) {
             Toast.makeText(this, "Passwords do not match", Toast.LENGTH_LONG).show()
-            hideProgressBar2()
             return
         }
         if (password.length < 6) {
-            Toast.makeText(
-                this,
-                "Password should be at least 6 characters",
-                Toast.LENGTH_LONG
-            ).show()
-            hideProgressBar2()
+            Toast.makeText(this, "Password should be at least 6 characters", Toast.LENGTH_LONG).show()
             return
         }
 
+        showProgressBar2()
+
         FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
-
                 if (task.isSuccessful) {
-                    if (this::uri.isInitialized) {
-                        val filePath = storageRef.child("profile_images")
-                            .child("${FirebaseAuth.getInstance().currentUser!!.uid}.jpg")
+                    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                    val localUri = selectedImageUri
 
-                        filePath.putFile(uri).addOnSuccessListener { uploadTask ->
-                            val result: Task<Uri> = uploadTask.metadata?.reference?.downloadUrl!!
-                            result.addOnSuccessListener { downloadUri ->
-                                val user = User(
-                                    username,
-                                    downloadUri.toString(),
-                                    FirebaseAuth.getInstance().currentUser!!.uid
-                                )
+                    if (localUri != null && uid.isNotEmpty()) {
+                        val filePath = storageRef.child("profile_images").child("$uid.jpg")
+                        filePath.putFile(localUri).addOnSuccessListener { taskSnapshot ->
+                            taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUri ->
+                                val user = User(username, downloadUri.toString(), uid)
+                                saveUserAndProceed(user)
+                            }.addOnFailureListener {
+                                val user = User(username, "", uid)
                                 saveUserAndProceed(user)
                             }
                         }.addOnFailureListener {
-                            // Profile image upload failed — create account without image
-                            val user = User(
-                                username,
-                                "",
-                                FirebaseAuth.getInstance().currentUser!!.uid
-                            )
+                            val user = User(username, "", uid)
                             saveUserAndProceed(user)
                         }
                     } else {
-                        val user =
-                            User(username, "", FirebaseAuth.getInstance().currentUser!!.uid)
+                        val user = User(username, "", uid)
                         saveUserAndProceed(user)
                     }
                 } else {
+                    hideProgressBar2()
                     Toast.makeText(
                         this,
-                        task.exception?.message ?: "Account creation failed",
+                        task.exception?.localizedMessage ?: "Account creation failed",
                         Toast.LENGTH_LONG
                     ).show()
-                    hideProgressBar2()
                 }
             }
-
     }
 
     private fun saveUserAndProceed(user: User) {
-        mUsersRef.document()
+        mUsersRef.document(user.id)
             .set(user)
             .addOnSuccessListener {
                 Toast.makeText(
@@ -254,13 +226,12 @@ class MainActivity : AppCompatActivity() {
                 ).show()
                 hideProgressBar2()
                 sendToActivity()
-            }.addOnFailureListener {
+            }.addOnFailureListener { e ->
                 Toast.makeText(
                     this@MainActivity,
-                    "Failed to save user data: ${it.message}",
+                    "Failed to save user data: ${e.localizedMessage}",
                     LENGTH_LONG
-                )
-                    .show()
+                ).show()
                 hideProgressBar2()
             }
     }
@@ -319,7 +290,6 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
-
     private fun showProgressBar1() {
         if (::mBinding.isInitialized) mBinding.progressBar1.visibility = View.VISIBLE
     }
@@ -335,6 +305,4 @@ class MainActivity : AppCompatActivity() {
     private fun hideProgressBar2() {
         if (::mBinding.isInitialized) mBinding.progressBar2.visibility = View.GONE
     }
-
-
 }

@@ -93,7 +93,11 @@ class MessagesAdaptor(
                 if (message.image.isNotEmpty()) {
                     Picasso.get()
                         .load(message.image)
+                        .resize(500, 500)
+                        .centerCrop()
+                        .onlyScaleDown()
                         .placeholder(R.drawable.chat_app)
+                        .error(R.drawable.chat_app)
                         .into(holder.meImage)
                 }
                 loadUserProfile(message.sender, holder.meProfileImage)
@@ -102,7 +106,11 @@ class MessagesAdaptor(
                 if (message.image.isNotEmpty()) {
                     Picasso.get()
                         .load(message.image)
+                        .resize(500, 500)
+                        .centerCrop()
+                        .onlyScaleDown()
                         .placeholder(R.drawable.chat_app)
+                        .error(R.drawable.chat_app)
                         .into(holder.senderImage)
                 }
                 loadUserProfile(message.sender, holder.senderProfileImage)
